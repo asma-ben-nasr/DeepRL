@@ -11,9 +11,9 @@ pip install -r requirements.txt
 ### For REINFORCE
 Go into the jupyter notebook and run it all
 ### REINFORCE Results
-![reinforce](/ouput_reinforce.png?raw=true "Optional Title")
+![reinforce](/output_reinforce.png?raw=true "Reinforce score")
 
 ### For PPO
 Navigate into the ppo folder and run the jupyter notebook train.ipynb
 ### PPO results
-![ppo](/ouput_ppo.png?raw=true "Optional Title")
+![ppo](/output_ppo.png?raw=true "PPO average score")
