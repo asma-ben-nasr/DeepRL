@@ -21,4 +21,4 @@ Navigate into the ppo folder and run the jupyter notebook train.ipynb
 
 ### Execution on Cartpole v-0
 
-![results](results.mp4)
+![results](/results.mp4)
