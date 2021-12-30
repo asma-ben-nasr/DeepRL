@@ -17,3 +17,8 @@ Go into the jupyter notebook and run it all
 Navigate into the ppo folder and run the jupyter notebook train.ipynb
 ### PPO results
 ![ppo](/output_ppo.png?raw=true "PPO average score")
+
+
+### Execution on Cartpole v-0
+
+![results](results.mp4)
