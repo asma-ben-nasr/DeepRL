@@ -21,6 +21,4 @@ Navigate into the ppo folder and run the jupyter notebook train.ipynb
 
 ### Execution on Cartpole v-0
 
-<video width="320" height="240" controls>
-  <source src="results.mp4" type="video/mp4">
-</video>
+![results](/resultss.gif?raw=true "Reinforce score")
