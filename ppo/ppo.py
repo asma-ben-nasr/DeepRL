@@ -6,15 +6,15 @@ import torch.optim as optim
 from torch.distributions.categorical import Categorical
 class PPOMemory:
     def __init__(self,batch_size):
-        self.states=[]
-        self.probs=[]
-        self.vals=[]
-        self.actions=[]
-        self.rewards=[]
-        self.dones=[]
+        self.states=[] #states
+        self.probs=[] # log probabilities
+        self.vals=[] #values calculated by critic
+        self.actions=[] #actions
+        self.rewards=[] #rewards
+        self.dones=[] #terminal flags
         self.batch_size= batch_size
     def generate_batches(self): #generate random batches of size batch_size
-        n_states=len(self.states)
+        n_states=len(self.states) #number of states
         batch_start=np.arange(0,n_states,self.batch_size)
         indices = np.arange(n_states,dtype=np.int64)
         np.random.shuffle(indices) #for randomness
@@ -22,14 +22,14 @@ class PPOMemory:
         return(np.array(self.states),np.array(self.actions),np.array(self.probs),np.array(self.vals),np.array(self.rewards),np.array(self.dones),batches)
 
     def store_memory(self,state,action,probs,vals,reward,done):
-        self.states.append(state)
-        self.actions.append(action)
-        self.probs.append(probs)
-        self.vals.append(vals)
-        self.rewards.append(reward)
-        self.dones.append(done)
+        self.states.append(state) #add  state
+        self.actions.append(action) #add action
+        self.probs.append(probs) #add log probability
+        self.vals.append(vals) #add value
+        self.rewards.append(reward) #add reward
+        self.dones.append(done) #add done
 
-    def clear_memory(self):
+    def clear_memory(self): #clear the memory at the end of every episode
         self.states=[]
         self.probs=[]
         self.vals=[]
@@ -48,19 +48,20 @@ class ActorNetwork(nn.Module):
             nn.Linear(fc2_dims,n_actions),
             nn.Softmax(dim=-1)
         )
-        self.optimizer = optim.Adam(self.parameters(),lr=alpha)
-        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
-        self.to(self.device)
+        self.optimizer = optim.Adam(self.parameters(),lr=alpha)#optimizer
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')#device gpu or cpu 
+        self.to(self.device)#send the network to the device
     def forward(self,state):
         dist=self.actor(state)
-        dist=Categorical(dist) #calculate a series of probabilities that we are using to draw from a distribution to get our actions, and we can use it to get log probabilities
+        dist=Categorical(dist) #calculates a series of probabilities that we are using to draw from a distribution to get our actions, 
+        #and we can use it to get log probabilities
         return(dist)
     def save_checkpoint(self):
         T.save(self.state_dict(),self.checkpoint_file)
     def load_checkpoint(self):
         self.load_state_dict(T.load(self.checkpoint_file))
 class CriticNetwork(nn.Module):
-    def __init__(self,input_dims,alpha,fc1_dims=256,fc2_dims=256,chkpt_dir='./'):
+    def __init__(self,input_dims,alpha,fc1_dims=256,fc2_dims=256,chkpt_dir='./'): #only one output : value
     
         super(CriticNetwork,self).__init__()
         self.checkpoint_file=os.path.join(chkpt_dir,'critic_ppo')
@@ -71,30 +72,36 @@ class CriticNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(fc2_dims,1)
         )
-        self.optimizer=optim.Adam(self.parameters(),lr=alpha)
-        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
-        self.to(self.device)
+        self.optimizer=optim.Adam(self.parameters(),lr=alpha) #optimizer
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu') #device gpu or cpu 
+        self.to(self.device) #send the network to the device
     
     def forward(self,state):
-        value=self.critic(state)
-
+        value=self.critic(state) #value by the critic
         return(value)
     def save_checkpoint(self):
         T.save(self.state_dict(),self.checkpoint_file)
     def load_checkpoint(self):
         self.load_state_dict(T.load(self.checkpoint_file))
 class Agent:
-    def __init__(self,input_dims,n_actions,gamma=0.99,alpha=0.0003,gae_lambda=0.95,policy_clip=0.2,batch_size=64,N=2048,n_epochs=10) : # N:horizon , the number of steps before doing an update
+    def __init__(self,input_dims,n_actions,gamma=0.99,alpha=0.0003,gae_lambda=0.95,policy_clip=0.2,batch_size=64,N=2048,n_epochs=10) :
+        # N:horizon , the number of steps before doing an update
+        #the parameters values come from the PPO paper
         self.gamma=gamma
         self.policy_clip = policy_clip
         self.n_epochs = n_epochs
-        self.gae_lambda=gae_lambda
+        self.gae_lambda=gae_lambda 
+        #With gae you can create a mix between monte carlo and td updates. 
+        #Monte carlo methods have a low bias 5ater and update with true rewards but have high variance
+        # td methods have a high bias because we basically are using estimates to update an another estimate,
+        #  but have a low variance, a mix between them combines the best in both.
+
         self.actor = ActorNetwork(n_actions,input_dims,alpha)
         self.critic = CriticNetwork(input_dims,alpha)
         self.memory=PPOMemory(batch_size)
     
     def remember(self,state,action,probs,vals,reward,done):
-        self.memory.store_memory(state,action,probs,vals,reward,done)
+        self.memory.store_memory(state,action,probs,vals,reward,done) #handles the interface between the agent and its memory
     
     def save_models(self):
         print('... saving models ...')
@@ -146,7 +153,7 @@ class Agent:
                     critic_value=self.critic(states)
                     critic_value=T.squeeze(critic_value)
                     new_probs=dist.log_prob(actions)
-                    prob_ratio=(new_probs-old_probs).exp()
+                    prob_ratio=(new_probs-old_probs).exp() #exp(new_probs-old_probs) = exp(new_probls)/exp(old_probs) probs being : log(x)
                     weighted_probs=advantage[batch]*prob_ratio
                     weighted_clipped_probs=T.clamp(prob_ratio,1-self.policy_clip,1+self.policy_clip)*advantage[batch]
                     actor_loss=-T.min(weighted_probs,weighted_clipped_probs).mean()
@@ -159,7 +166,7 @@ class Agent:
                     total_loss.backward()
                     self.actor.optimizer.step()
                     self.critic.optimizer.step()
-        self.memory.clear_memory()
+        self.memory.clear_memory() #clear memory at the end of all epochs
 
 
 
