@@ -61,7 +61,7 @@ class ActorNetwork(nn.Module):
     def load_checkpoint(self):
         self.load_state_dict(T.load(self.checkpoint_file))
 class CriticNetwork(nn.Module):
-    def __init__(self,input_dims,alpha,fc1_dims=256,fc2_dims=256,chkpt_dir='./'): #only one output : value
+    def __init__(self,input_dims,alpha,fc1_dims=256,fc2_dims=256,chkpt_dir='./'): 
     
         super(CriticNetwork,self).__init__()
         self.checkpoint_file=os.path.join(chkpt_dir,'critic_ppo')
@@ -92,8 +92,8 @@ class Agent:
         self.n_epochs = n_epochs
         self.gae_lambda=gae_lambda 
         #With gae you can create a mix between monte carlo and td updates. 
-        #Monte carlo methods have a low bias 5ater and update with true rewards but have high variance
-        # td methods have a high bias because we basically are using estimates to update an another estimate,
+        #Monte carlo methods have a low bias and update with true rewards but have high variance
+        # td methods have a high bias because we basically are using estimates to update another estimate,
         #  but have a low variance, a mix between them combines the best in both.
 
         self.actor = ActorNetwork(n_actions,input_dims,alpha)
@@ -128,7 +128,7 @@ class Agent:
 
         for _ in range(self.n_epochs):
 
-
+            #collect a set of trajectories
             state_arr,action_arr,old_probs_arr,vals_arr,reward_arr,done_arr,batches=self.memory.generate_batches()
             values=vals_arr
             advantage=np.zeros(len(reward_arr),dtype=np.float32)
@@ -138,9 +138,10 @@ class Agent:
                 discount=1
                 a_t=0
                 for k in range(t,len(reward_arr)-1):
-
+                    #compute generalized advantage estimate (GAE)
                     a_t+=discount*(reward_arr[k]+self.gamma*values[k+1]*(1-int(done_arr[k]))-values[k]) #1-dones as a multiplicative value because the value of the terminal state is identically 0 by convention
                     discount *=self.gamma*self.gae_lambda
+                    #calculate the advantage
                     advantage[t]=a_t
                 advantage = T.tensor(advantage).to(self.actor.device)
                 values = T.tensor(values).to(self.actor.device)
