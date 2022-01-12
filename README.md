@@ -15,12 +15,11 @@ Go into the jupyter notebook and run it all
 
 ### For PPO
 Navigate into the ppo folder and run the jupyter notebook train.ipynb
+PS: the actor and critic networks are already trained in the repository. you can skip the training and see the execution right away.
 ### PPO results
 ![ppo](/output_ppo.png?raw=true "PPO average score")
 
 
 ### Execution on Cartpole v-0
-
-<video width="320" height="240" controls>
-  <source src="results.mp4" type="video/mp4">
-</video>
+Here is an example of the REINFORCE algorithm.
+![](results.gif)
